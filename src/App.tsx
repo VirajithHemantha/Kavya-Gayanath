@@ -204,7 +204,7 @@ function RealisticPetal({ size = 20, className = "" }: { size?: number; classNam
 type Attendance = "yes" | "no";
 
 function RSVPForm({ guestName }: { guestName: string }) {
-  const endpoint = (import.meta as any).env?.VITE_RSVP_ENDPOINT as string | undefined;
+  const endpoint = "https://script.google.com/macros/s/AKfycbxmSURDpN_Ft80nrXdz7swaZ0inONQmMJF-z7c0QvqJlHTWlEYZ7Rk7LCQUHWOhoXVJ/exec";
 
   const [attendance, setAttendance] = useState<Attendance>("yes");
   const [submitting, setSubmitting] = useState(false);
@@ -234,24 +234,23 @@ function RSVPForm({ guestName }: { guestName: string }) {
 
     setSubmitting(true);
     try {
-      // Try JSON request first
-      const res = await fetch(endpoint, {
+      // Using text/plain and no-cors avoids the OPTIONS preflight request
+      // which causes CORS errors with Google Apps Script
+      await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "text/plain",
+        },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(String(res.status));
+      
+      // In no-cors mode, we get an opaque response (status 0),
+      // so if fetch doesn't throw a network error, we assume success.
       setSuccessMessage("RSVP saved. Thank you!");
-    } catch {
-      try {
-        // Fallback for Apps Script deployments
-        const fd = new FormData();
-        fd.append("payload", JSON.stringify(payload));
-        await fetch(endpoint, { method: "POST", mode: "no-cors", body: fd });
-        setSuccessMessage("RSVP submitted. Thank you!");
-      } catch {
-        setErrorMessage("Could not submit RSVP. Please try again.");
-      }
+    } catch (err) {
+      console.error("RSVP Submission Error:", err);
+      setErrorMessage("Could not submit RSVP. Please try again.");
     } finally {
       setSubmitting(false);
     }
