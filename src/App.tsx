@@ -202,75 +202,21 @@ function RealisticPetal({ size = 20, className = "" }: { size?: number; classNam
 }
 
 type Attendance = "yes" | "no";
-type PartyType = "individual" | "family";
-type MealPreference = "veg" | "non-veg";
 
-type GuestEntry = {
-  name: string;
-  meal: MealPreference;
-};
-
-function RSVPForm() {
+function RSVPForm({ guestName }: { guestName: string }) {
   const endpoint = (import.meta as any).env?.VITE_RSVP_ENDPOINT as string | undefined;
 
   const [attendance, setAttendance] = useState<Attendance>("yes");
-  const [partyType, setPartyType] = useState<PartyType>("individual");
-  const [guestCount, setGuestCount] = useState<number>(1);
-  const [guests, setGuests] = useState<GuestEntry[]>([{ name: "", meal: "non-veg" }]);
-  const [wishes, setWishes] = useState<string>("");
-
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isAttending = attendance === "yes";
-  const effectiveGuestCount = partyType === "family" ? Math.max(2, guestCount) : 1;
-
-  useEffect(() => {
-    if (partyType === "individual") {
-      setGuestCount(1);
-      setGuests((prev) => [prev[0] ?? { name: "", meal: "non-veg" }]);
-      return;
-    }
-
-    setGuestCount((c) => (c < 2 ? 2 : c));
-  }, [partyType]);
-
-  useEffect(() => {
-    const desiredCount = partyType === "family" ? Math.max(2, guestCount) : 1;
-    setGuests((prev) => {
-      if (prev.length === desiredCount) return prev;
-      const next = prev.slice(0, desiredCount);
-      while (next.length < desiredCount) next.push({ name: "", meal: "non-veg" });
-      return next;
-    });
-  }, [guestCount, partyType]);
-
-  function updateGuest(index: number, patch: Partial<GuestEntry>) {
-    setGuests((prev) => prev.map((g, i) => (i === index ? { ...g, ...patch } : g)));
-  }
-
-  function validate(): string | null {
-    const primaryName = guests[0]?.name?.trim();
-    if (!primaryName) return "Please enter your name.";
-    if (attendance === "no") return null;
-
-    const missingName = guests.some((g) => !g.name.trim());
-    if (missingName) return "Please enter all guest names.";
-
-    return null;
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSuccessMessage(null);
     setErrorMessage(null);
-
-    const validationError = validate();
-    if (validationError) {
-      setErrorMessage(validationError);
-      return;
-    }
 
     if (!endpoint) {
       setErrorMessage("RSVP saving is not configured yet (missing VITE_RSVP_ENDPOINT).");
@@ -280,9 +226,9 @@ function RSVPForm() {
     const payload = {
       type: "rsvp",
       attendance,
-      partyType,
-      guestCount: isAttending ? effectiveGuestCount : 0,
-      guests: isAttending ? guests : [guests[0]],
+      partyType: "individual",
+      guestCount: isAttending ? 1 : 0,
+      guests: [{ name: guestName }],
       submittedAt: new Date().toISOString(),
     };
 
@@ -318,7 +264,7 @@ function RSVPForm() {
       <p className="text-[10px] md:text-xs text-stone-400 uppercase tracking-widest mb-4 md:mb-6 text-center leading-relaxed">
         Please let us know by
         <br />
-        April 15th, 2026
+        <span className="font-bold">15th September</span>
       </p>
 
       <form onSubmit={submit} className="space-y-4 md:space-y-4 px-1 md:px-2">
@@ -343,74 +289,6 @@ function RSVPForm() {
           </button>
         </div>
 
-        <div className={`grid grid-cols-2 gap-2 ${!isAttending ? "opacity-60 pointer-events-none" : ""}`}>
-          <button
-            type="button"
-            data-no-flip
-            onClick={() => setPartyType("individual")}
-            className={`py-3 md:py-2 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${partyType === "individual" ? "gold-gradient-bg text-paper border-sage" : "bg-sand/40 text-sage border-sage/30"
-              }`}
-          >
-            Individual
-          </button>
-          <button
-            type="button"
-            data-no-flip
-            onClick={() => setPartyType("family")}
-            className={`py-3 md:py-2 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${partyType === "family" ? "gold-gradient-bg text-black border-sage" : "bg-sand/40 text-sage border-sage/30"
-              }`}
-          >
-            Family
-          </button>
-        </div>
-
-        {isAttending && partyType === "family" && (
-          <div className="flex items-center justify-between gap-3">
-            <label className="text-[10px] md:text-xs uppercase tracking-widest font-bold text-zinc-600">Family Count</label>
-            <input
-              data-no-flip
-              type="number"
-              min={2}
-              max={12}
-              value={effectiveGuestCount}
-              onChange={(ev) => setGuestCount(Number(ev.target.value || 2))}
-              className="w-28 rounded-xl border border-sage/20 bg-white/60 px-3 py-2.5 text-xs text-zinc-800 outline-none"
-            />
-          </div>
-        )}
-
-        <div className="space-y-2">
-          {(isAttending ? guests : [guests[0]]).map((guest, idx) => (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_140px] gap-2">
-              <input
-                data-no-flip
-                value={guest?.name ?? ""}
-                onChange={(ev) => updateGuest(idx, { name: ev.target.value })}
-                placeholder={
-                  isAttending
-                    ? partyType === "family"
-                      ? `Guest ${idx + 1} name`
-                      : "Your name"
-                    : "Your name"
-                }
-                className="w-full rounded-xl border border-sage/20 bg-white/60 px-3 py-2.5 text-xs text-zinc-800 outline-none"
-              />
-
-              <select
-                data-no-flip
-                disabled={!isAttending}
-                value={guest?.meal ?? "non-veg"}
-                onChange={(ev) => updateGuest(idx, { meal: ev.target.value as MealPreference })}
-                className={`w-full rounded-xl border border-sage/20 bg-white/60 px-3 py-2.5 text-xs text-zinc-800 outline-none ${!isAttending ? "opacity-60" : ""
-                  }`}
-              >
-                <option value="veg">Veg</option>
-                <option value="non-veg">Non-Veg</option>
-              </select>
-            </div>
-          ))}
-        </div>
-
         {errorMessage && <p className="text-[10px] md:text-xs text-red-700 font-semibold">{errorMessage}</p>}
         {successMessage && <p className="text-[10px] md:text-xs text-sage font-bold">{successMessage}</p>}
 
@@ -433,102 +311,7 @@ function RSVPForm() {
   );
 }
 
-function WishesSection() {
-  const endpoint = (import.meta as any).env?.VITE_RSVP_ENDPOINT as string | undefined;
-  const [name, setName] = useState("");
-  const [wishes, setWishes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!endpoint) {
-      setErrorMessage("Endpoint not configured.");
-      return;
-    }
-    if (!name.trim() || !wishes.trim()) {
-      setErrorMessage("Please enter both your name and wishes.");
-      return;
-    }
-
-    setSubmitting(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    const payload = {
-      type: "wish",
-      name,
-      wishes,
-      submittedAt: new Date().toISOString(),
-    };
-
-    try {
-      // Try JSON request first
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!res.ok) throw new Error(String(res.status));
-      setSuccessMessage("Thank you for your wishes!");
-      setName("");
-      setWishes("");
-    } catch (err) {
-      try {
-        // Fallback for Apps Script deployments
-        const fd = new FormData();
-        fd.append("payload", JSON.stringify(payload));
-        await fetch(endpoint, { method: "POST", mode: "no-cors", body: fd });
-        
-        setSuccessMessage("Wishes submitted. Thank you!");
-        setName("");
-        setWishes("");
-      } catch (innerErr) {
-        setErrorMessage("Something went wrong. Please try again.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="w-full mt-12 p-6 md:p-10 bg-sand/20 border border-white/5 rounded-3xl backdrop-blur-sm text-center max-w-4xl mx-auto z-10 relative shadow-lg">
-      <Heart size={28} className="text-sage mb-3 mx-auto opacity-80" fill="currentColor" />
-      <h3 className="serif text-3xl md:text-5xl gold-gradient-text mb-2 md:mb-4 font-medium">Send Your Wishes</h3>
-      <p className="text-stone-400 text-xs md:text-sm mb-6 max-w-md mx-auto leading-relaxed">
-        Can't make it to the ceremony or just want to leave a heartfelt message? Share your wishes below!
-      </p>
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-lg mx-auto text-left">
-        <input
-          value={name}
-          onChange={(ev) => setName(ev.target.value)}
-          placeholder="Your Name"
-          className="w-full rounded-xl border border-sage/20 bg-white/60 px-4 py-3 text-sm text-zinc-800 outline-none"
-        />
-        <textarea
-          value={wishes}
-          onChange={(ev) => setWishes(ev.target.value)}
-          placeholder="Write your message here..."
-          className="w-full h-28 rounded-xl border border-sage/20 bg-white/60 px-4 py-3 text-sm text-zinc-800 outline-none resize-none"
-        />
-
-        {errorMessage && <p className="text-xs text-red-700 font-semibold text-center">{errorMessage}</p>}
-        {successMessage && <p className="text-xs text-sage font-bold text-center">{successMessage}</p>}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full gold-gradient-bg shimmer text-paper py-3 md:py-4 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold disabled:opacity-60 mt-1 hover:opacity-90 transition-opacity"
-        >
-          {submitting ? "Sending..." : "Send Wishes"}
-        </button>
-      </form>
-    </div>
-  );
-}
 
 export default function App() {
   const [isFlapOpen, setIsFlapOpen] = useState(false);
@@ -536,7 +319,16 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(true);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [guestName, setGuestName] = useState("YOU");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const guest = params.get("guest");
+    if (guest) {
+      setGuestName(guest);
+    }
+  }, []);
 
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -792,16 +584,18 @@ export default function App() {
             </span>
           </h1>
 
-          <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 md:gap-16 mt-4 md:mt-8 relative w-full px-2">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 md:gap-8 mt-4 md:mt-8 relative w-full px-2">
             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-32 bg-sage/5 blur-3xl rounded-full" />
 
-            <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[12vw] sm:text-6xl md:text-[7rem] gold-gradient-text shimmer drop-shadow-lg relative z-10 leading-relaxed px-1">
-              Kavya
-            </motion.h2>
+            <div className="flex justify-end">
+              <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[12vw] sm:text-6xl md:text-[7rem] gold-gradient-text shimmer drop-shadow-lg relative z-10 leading-relaxed px-1">
+                Kavya
+              </motion.h2>
+            </div>
 
             <div className="relative flex items-center justify-center shrink-0">
               <div className="h-px w-6 md:w-24 bg-sage/20 hidden md:block" />
-              <div className="relative mx-1 md:mx-4">
+              <div className="relative mx-1 md:mx-4 flex items-center">
                 <Heart className="text-sage/40 w-5 h-5 sm:w-7 sm:h-7 md:w-10 md:h-10 animate-pulse" fill="currentColor" />
                 <motion.div
                   animate={{ scale: [1, 1.5, 1], opacity: [0, 1, 0] }}
@@ -812,16 +606,18 @@ export default function App() {
               <div className="h-px w-6 md:w-24 bg-sage/20 hidden md:block" />
             </div>
 
-            <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[12vw] sm:text-6xl md:text-[7rem] gold-gradient-text shimmer drop-shadow-lg relative z-10 leading-relaxed px-1">
-              Gayanath
-            </motion.h2>
+            <div className="flex justify-start">
+              <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[12vw] sm:text-6xl md:text-[7rem] gold-gradient-text shimmer drop-shadow-lg relative z-10 leading-relaxed px-1">
+                Gayanath
+              </motion.h2>
+            </div>
           </div>
 
           <div className="w-24 md:w-32 h-px bg-gradient-to-r from-transparent via-sage/40 to-transparent mx-auto mt-8" />
         </motion.div>
 
         {/* Updated premium envelope section */}
-        <div className="flex justify-center w-full mb-8 mt-12 md:mt-28">
+        <div className="flex justify-center w-full mb-8">
           {!isOpened ? (
             <div className="w-full max-w-3xl relative h-[340px] sm:h-[380px] md:h-[460px]" />
           ) : (
@@ -980,24 +776,14 @@ export default function App() {
                       <div className="flex-1 h-px bg-gradient-to-l from-transparent to-taupe/55" />
                     </div>
 
-                    {/* logo */}
-                    <motion.div
-                      animate={{ scale: [1, 1.04, 1] }}
-                      transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                      className="mb-4 md:mb-6"
-                    >
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-32 md:h-32 rounded-full border border-sage/20 flex items-center justify-center bg-paper/40 backdrop-blur-sm shadow-lg mx-auto relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-sage/5 to-transparent pointer-events-none" />
-                        <span className="script text-2xl sm:text-4xl md:text-6xl gold-gradient-text shimmer select-none leading-relaxed px-2">KG</span>
-                      </div>
-                    </motion.div>
+
 
                     {/* hosting families */}
                     <div className="space-y-0.5 mt-4">
                       <p className="text-[8px] sm:text-[9px] md:text-[11px] uppercase tracking-[0.3em] text-sage font-bold leading-relaxed">
                         The Daughter of Mr. &amp; Mrs. Atapattu
                       </p>
-                      <p className="text-[7px] sm:text-[8px] md:text-[9px] uppercase tracking-[0.25em] text-stone-400 font-medium">
+                      <p className="text-[7px] sm:text-[8px] md:text-[9px] uppercase tracking-[0.25em] text-stone-600 font-medium">
                         and
                       </p>
                       <p className="text-[8px] sm:text-[9px] md:text-[11px] uppercase tracking-[0.3em] text-sage font-bold leading-relaxed">
@@ -1005,9 +791,11 @@ export default function App() {
                       </p>
                     </div>
 
-                    <p className="text-[7px] sm:text-[8px] md:text-[9px] uppercase tracking-[0.2em] text-stone-400 font-medium leading-relaxed max-w-[220px] md:max-w-sm mt-3">
-                      CORDIALLY INVITE YOU TO CELEBRATE<br/>
-                      THE PORUWA CEREMONY OF
+                    <p className="text-[7px] sm:text-[8px] md:text-[9px] uppercase tracking-[0.2em] text-stone-600 font-medium leading-relaxed max-w-[220px] md:max-w-sm mt-3">
+                      CORDIALLY INVITE<br/>
+                      <span className="block my-2 text-terra drop-shadow-md text-[10px] sm:text-xs md:text-sm font-bold tracking-[0.3em]">{guestName}</span>
+                      TO CELEBRATE<br/>
+                      THE WEDDING OF
                     </p>
 
                     {/* couple names */}
@@ -1015,31 +803,13 @@ export default function App() {
                       <span className="script text-[22px] sm:text-[28px] md:text-[36px] gold-gradient-text shimmer drop-shadow-sm leading-[1.6] px-2">
                         Kavya
                       </span>
-                      <span className="text-taupe/50 text-sm md:text-xl font-serif">&amp;</span>
+                      <span className="text-sage/80 text-sm md:text-xl font-serif">&amp;</span>
                       <span className="script text-[22px] sm:text-[28px] md:text-[36px] gold-gradient-text shimmer drop-shadow-sm leading-[1.6] px-2">
                         Gayanath
                       </span>
                     </div>
 
-                    {/* date / time / venue */}
-                    <div className="flex items-center gap-2 sm:gap-3 text-umber/70 w-full mt-1">
-                      <div className="h-px flex-1 bg-sand/45" />
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[7px] sm:text-[8px] md:text-[9px] uppercase tracking-[0.3em] text-sage font-bold">
-                          DECEMBER · FRIDAY
-                        </span>
-                        <span className="serif text-[22px] sm:text-[28px] md:text-4xl text-white font-medium leading-none">
-                          11
-                        </span>
-                        <span className="text-[7px] sm:text-[8px] md:text-[9px] uppercase tracking-[0.25em] text-sage font-bold">
-                          5:30 PM · 2026
-                        </span>
-                        <span className="mt-1 block max-w-[200px] px-2 text-[7px] sm:text-[7px] md:text-[8px] uppercase tracking-[0.12em] text-stone-400 text-center leading-snug break-words">
-                          The Kingsbury Hotel, The Balmoral
-                        </span>
-                      </div>
-                      <div className="h-px flex-1 bg-sand/45" />
-                    </div>
+
 
                     {/* bottom ornament */}
                     <div className="flex items-center gap-3 w-full max-w-[240px]">
@@ -1130,10 +900,8 @@ export default function App() {
                   {/* Date Lockup */}
                   <div className="flex flex-col items-center py-2 md:py-4">
                     <p className="text-[10px] md:text-xs uppercase tracking-[0.5em] text-terra/80 font-bold mb-3 md:mb-4">Friday</p>
-                    <div className="relative inline-flex flex-col items-center px-10 md:px-14 py-4 md:py-6 bg-sand/30 rounded-full border border-sage/15 shadow-[inset_0_4px_20px_rgba(0,0,0,0.02)]">
-                      <div className="absolute top-0 w-12 h-[1px] bg-sage/30" />
-                      <div className="absolute bottom-0 w-12 h-[1px] bg-sage/30" />
-                      <p className="font-sans text-6xl md:text-7xl lg:text-8xl font-light tracking-tighter text-sage leading-none drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]">
+                    <div className="relative inline-flex flex-col items-center py-4 md:py-6">
+                      <p className="font-sans text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter text-sage leading-none drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]">
                         11
                       </p>
                       <motion.div
@@ -1144,29 +912,27 @@ export default function App() {
                         <Sparkles size={14} className="md:w-5 md:h-5" />
                       </motion.div>
                     </div>
-                    <p className="serif text-lg md:text-2xl font-light tracking-[0.3em] text-sage mt-4 md:mt-6">DECEMBER</p>
+                    <p className="serif text-lg md:text-2xl font-light tracking-[0.3em] text-sage mt-2 md:mt-4">DECEMBER</p>
                     
-                    <div className="mt-3 flex items-center justify-center gap-4">
-                      <div className="w-8 h-[1px] bg-sage/20" />
+                    <div className="mt-2 md:mt-3 flex items-center justify-center">
                       <p className="text-[9px] md:text-xs uppercase tracking-[0.6em] font-bold text-terra/80">
                         2026
                       </p>
-                      <div className="w-8 h-[1px] bg-sage/20" />
                     </div>
                   </div>
 
+                  {/* Timeline section */}
+                  <div className="flex flex-col items-center mt-2 md:mt-4">
+                    <p className="text-[10px] md:text-sm uppercase tracking-[0.4em] text-sage font-bold drop-shadow-sm">5:30 PM</p>
+                    <p className="serif text-base md:text-xl italic text-sage mt-1 md:mt-2">Wedding Ceremony</p>
+                    <p className="text-[8px] md:text-[10px] uppercase tracking-[0.4em] text-terra/60 mt-2 md:mt-3 font-semibold">Followed by Reception</p>
+                  </div>
+
                   {/* Elegant Divider */}
-                  <div className="w-full max-w-[200px] flex items-center justify-center gap-2 opacity-60">
+                  <div className="w-full max-w-[200px] flex items-center justify-center gap-2 opacity-60 mt-4 md:mt-6">
                     <div className="flex-1 h-px bg-gradient-to-r from-transparent to-sage/40" />
                     <div className="w-1.5 h-1.5 rotate-45 bg-sage/40" />
                     <div className="flex-1 h-px bg-gradient-to-l from-transparent to-sage/40" />
-                  </div>
-
-                  {/* Timeline section */}
-                  <div className="flex flex-col items-center">
-                    <p className="text-[10px] md:text-sm uppercase tracking-[0.4em] text-sage font-bold drop-shadow-sm">5:30 PM</p>
-                    <p className="serif text-base md:text-xl italic text-sage mt-1 md:mt-2">Poruwa Ceremony</p>
-                    <p className="text-[8px] md:text-[10px] uppercase tracking-[0.4em] text-terra/60 mt-2 md:mt-3 font-semibold">Followed by Reception</p>
                   </div>
                 </div>
               </div>
@@ -1266,15 +1032,13 @@ export default function App() {
                 </div>
               }
               back={
-                <RSVPForm />
+                <RSVPForm guestName={guestName} />
               }
             />
           </motion.div>
 
 
         </div>
-
-        <WishesSection />
 
         <motion.footer
           initial={{ opacity: 0 }}
