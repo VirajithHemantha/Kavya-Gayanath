@@ -584,30 +584,30 @@ export default function App() {
             </span>
           </h1>
 
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 md:gap-8 mt-4 md:mt-8 relative w-full px-2">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-4 md:gap-8 mt-4 md:mt-8 relative w-full px-2 overflow-hidden">
             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-32 bg-sage/5 blur-3xl rounded-full" />
 
-            <div className="flex justify-end">
-              <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[12vw] sm:text-6xl md:text-[7rem] gold-gradient-text shimmer drop-shadow-lg relative z-10 leading-relaxed px-1">
+            <div className="flex justify-end min-w-0">
+              <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[10vw] sm:text-6xl md:text-[7rem] gold-gradient-text shimmer drop-shadow-lg relative z-10 leading-relaxed px-1 truncate w-full text-right">
                 Kavya
               </motion.h2>
             </div>
 
             <div className="relative flex items-center justify-center shrink-0">
-              <div className="h-px w-6 md:w-24 bg-sage/20 hidden md:block" />
+              <div className="h-px w-3 sm:w-6 md:w-24 bg-sage/20 hidden md:block" />
               <div className="relative mx-1 md:mx-4 flex items-center">
-                <Heart className="text-sage/40 w-5 h-5 sm:w-7 sm:h-7 md:w-10 md:h-10 animate-pulse" fill="currentColor" />
+                <Heart className="text-sage/40 w-4 h-4 sm:w-7 sm:h-7 md:w-10 md:h-10 animate-pulse" fill="currentColor" />
                 <motion.div
                   animate={{ scale: [1, 1.5, 1], opacity: [0, 1, 0] }}
                   transition={{ repeat: Infinity, duration: 2 }}
                   className="absolute inset-0 bg-sage/20 blur-xl rounded-full"
                 />
               </div>
-              <div className="h-px w-6 md:w-24 bg-sage/20 hidden md:block" />
+              <div className="h-px w-3 sm:w-6 md:w-24 bg-sage/20 hidden md:block" />
             </div>
 
-            <div className="flex justify-start">
-              <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[12vw] sm:text-6xl md:text-[7rem] gold-gradient-text shimmer drop-shadow-lg relative z-10 leading-relaxed px-1">
+            <div className="flex justify-start min-w-0">
+              <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[10vw] sm:text-6xl md:text-[7rem] gold-gradient-text shimmer drop-shadow-lg relative z-10 leading-relaxed px-1 truncate w-full text-left">
                 Gayanath
               </motion.h2>
             </div>
@@ -924,7 +924,7 @@ export default function App() {
                   {/* Timeline section */}
                   <div className="flex flex-col items-center mt-2 md:mt-4">
                     <p className="text-[10px] md:text-sm uppercase tracking-[0.4em] text-sage font-bold drop-shadow-sm">5:30 PM</p>
-                    <p className="serif text-base md:text-xl italic text-sage mt-1 md:mt-2">Wedding Ceremony</p>
+                    <p className="serif text-base md:text-xl italic text-sage mt-1 md:mt-2">Poruwa Ceremony</p>
                     <p className="text-[8px] md:text-[10px] uppercase tracking-[0.4em] text-terra/60 mt-2 md:mt-3 font-semibold">Followed by Reception</p>
                   </div>
 
